@@ -1,4 +1,6 @@
-move to github 8051 development repository to compare with bmb code
+working-file branch version to add notes
+;
+moved to github mcs51 repository to compare with bmb code
 2/22/2017  kenny house
 ;
 ;
