@@ -1,0 +1,1668 @@
+move to github 8051 development repository to compare with bmb code
+2/22/2017  kenny house
+;
+;
+CSEG AT 0000h 	gedit	2014/03/28
+;combined labels from > isprv.a51 and ispru.a51 after latest run
+;
+  0000 020533		LJMP 	L0001 	; START,  register-clear routine
+
+L0092:	;Called from 10 locations	: callers list,xxxx,
+  0003 E519  		MOV A, 19h	;load value from counter @19h
+  0005 240D  		ADD A, #0Dh	;'13' add offset
+  0007 F8    		MOV R0, A	;load it into R0
+L0159:	;may not be a real label, called from ? data ?[0290]
+  0008 E6    		MOV A, @R0	;@0Dh or 10h contents to A
+  0009 0519  		INC 19h		;increment counter value
+L0085:		;may not be a real label, called from ? data ?[001D]
+  000B 22    		RET		; end sub
+
+
+L0047:	;called twice [0093,00AD]	;[Bit 7h? (R0=0A/0D,A=0,B=1)]
+  000C 780A  		MOV R0, #0Ah	;load '10' LF 0Ah into R0, or
+L0157:					;[0285]? false label from data?
+  000E 300702		JNB 7h, L0069	;if bit 7h = 1, then
+  0011 780D  		MOV R0, #0Dh	;load '13' CR 0Dh into R0, else
+L0069:					;if bit 7h =0, then
+  0013 E4    		CLR A		;clear A, and
+L0061:					;[Prepare for Output]
+  0014 75F001		MOV B, #1h	;load '1' into B
+  0017 1204FD		LCALL 	L0038	;[Load R1,2,3 from A,B,@R0]
+  001A 0204A5		LJMP 	L0062	;[Read Mem to A] and return
+;no call label 				;continue on return [04A5]
+  001D 2000EB		JB 0h, 	L0085	; ret if bit .0 set
+  0020 7F2E  		MOV R7, #2Eh
+  0022 D200  		SETB 0h
+  0024 8018  		SJMP 	L0033	;[Output the Results]
+
+;no call label				;used epafter 80h
+  0026 EF    		MOV A, R7	;
+L0133:					;[0244]
+  0027 540F  		ANL A, #0Fh
+  0029 2490  		ADD A, #90h
+  002B D4    		DA A		;decimal adjust 
+  002C 3440  		ADDC A, #40h
+  002E D4    		DA A
+L0164:  				;called after Code read
+  002F FF    		MOV R7, A
+  0030 30040B		JNB 4h, L0033	;[Output the Results]
+  0033 EF    		MOV A, R7
+  0034 24BF  		ADD A, #0BFh
+  0036 B41A00		CJNE A,#1Ah,L0086 ;useless inst ?
+L0086:
+  0039 5003  		JNC L0033	;[Output the Results]
+  003B 2461  		ADD A, #61h
+  003D FF    		MOV R7, A
+
+L0033:	;11 calls			;[Output Results Subroutine]
+  003E E51A  		MOV A, 1Ah	;Check 1Ah <?> 
+  0040 6002  		JZ L0035	;if @1Ah<>0, then
+  0042 151A  		DEC 1Ah		;decrement value in RAM @ 1Ah
+L0035:					;else if @1Ah =0, then
+  0044 051D  		INC 1Dh		;increment value in 1Dh.
+  0046 E51D  		MOV A, 1Dh	;Check @1Dh <?>
+  0048 7002  		JNZ L0036	;if 1Dh =0, then 
+  004A 051C  		INC 1Ch		;increment 1Ch, and
+L0036:					;else if 1Dh<>0, then
+  004C 30070D		JNB 7h,L0037	;Check 7h<?>, if bit 7h=0,then skip to Serial and return
+L0050:	;also called from [009E]	;and continue
+  004F 780A  		MOV R0, #0Ah	;load '10' LF 0Ah into R0
+  0051 E4    		CLR A		;clear A=0, and
+  0052 75F001		MOV B, #1h	;load '1' into B, and call
+  0055 1204FD		LCALL 	L0038	;[Load R1,2,3 from A,B,@R0]
+  0058 EF    		MOV A, R7	;load input for sub call
+  0059 0204EB		LJMP 	L0039	;saves R7 [8-or 16-bit mem sub] 
+L0037:
+  005C 0207E8		LJMP 	L0043	;jump to Serial Port sub [07E8]
+					;send output result [the R7]
+					;which has return
+;=====?
+					;so it continues without Label?
+  005F 7403  		MOV A, #3h	;load '3' into A
+  0061 D207  		SETB 7h		;set flag bit 7h
+  0063 8003  		SJMP 	L0087	;skip two instruction
+L0030:	called 4 times			;ENTER subroutine
+  0065 E4    		CLR A		;with R1,2,3 as input
+  0066 C207  		CLR 7h		;clear flag bit 7h
+L0087:					;save A
+  0068 F519  		MOV 19h, A	;A could be 0 or 3 [005F]
+  006A 8B0A  		MOV 0Ah, R3	;save R1, 2, 3 to
+  006C 8A0B  		MOV 0Bh, R2	;RAM  0C,0B,0A
+  006E 890C  		MOV 0Ch, R1
+  0070 E4    		CLR A
+  0071 F51A  		MOV 1Ah, A	;clear RAM 1A,1C,1D
+  0073 F51C  		MOV 1Ch, A
+  0075 F51D  		MOV 1Dh, A
+L0034:					;loop start
+  0077 E51A  		MOV A, 1Ah
+  0079 6007  		JZ  L0032	;is A zero?
+  007B 7F20  		MOV R7, #20h
+  007D 12003E		LCALL 	L0033	;[Output the Results]
+  0080 80F5  		SJMP L0034	;repeat loop
+L0032:					;branch when A is zero
+  0082 751BFF		MOV 1Bh, #0FFh
+  0085 C201  		CLR 1h
+  0087 C200  		CLR 0h
+  0089 C202  		CLR 2h
+  008B C203  		CLR 3h
+  008D C205  		CLR 5h
+  008F C206  		CLR 6h
+  0091 C208  		CLR 8h		;? clear bit '8' what is it?
+  0093 12000C		LCALL 	L0047	; call sub
+  0096 FF    		MOV R7, A
+  0097 700D  		JNZ 	L0048	;is A empty?
+  0099 300705		JNB 7h, L0049	;is bit set?
+  009C 7F00  		MOV R7, #0h
+  009E 12004F		LCALL 	L0050	;call sub at [004F]
+L0049:					; branch on bit
+  00A1 AF1D  		MOV R7, 1Dh
+  00A3 AE1C  		MOV R6, 1Ch
+  00A5 22    		RET		;return
+L0048:					;branch on A not empty
+  00A6 B4255F		CJNE A,#25h,L0051 ;[0108]Check A<?>#25h
+L0088:
+  00A9 C2D5  		CLR F0		; clear bit F0, B.0
+L0056:					;loop back to here
+  00AB C204  		CLR 4h
+  00AD 12000C		LCALL 	L0047	;Read some Mem byte into A
+  00B0 FF    		MOV R7, A
+  00B1 24D0  		ADD A, #0D0h
+  00B3 B40A00		CJNE A,#Ah,L0052;Check A<?> [
+L0052:
+  00B6 501A  		JNC L0053	;Check C<?> branch if C=0
+  00B8 75F00A		MOV B, #0Ah	; load '10' into B
+  00BB 781A  		MOV R0, #1Ah
+  00BD 30D505		JNB F0, L0054	;if bit B.0=0 mult A x '10'
+  00C0 08    		INC R0
+  00C1 B6FF01		CJNE @R0,#FFh,L0054 ;
+  00C4 06    		INC @R0
+L0054:					;branch for F0 not set
+  00C5 C6    		XCH A, @R0
+  00C6 A4    		MUL AB
+  00C7 26    		ADD A, @R0
+  00C8 F6    		MOV @R0, A
+  00C9 20D504		JB F0, L0055	;Check B.0
+  00CC 7002  		JNZ L0055	;Check A
+  00CE D203  		SETB 3h
+L0055:					;branch when B.0 set or A<>0
+  00D0 80D9  		SJMP L0056	;loop back up in here
+L0053:					;branched here when C=0
+  00D2 24CF  		ADD A, #0CFh
+  00D4 B41A00		CJNE A,#1Ah,L0057 ;check A<?> #1Ah
+L0057:
+  00D7 EF    		MOV A, R7	;useless inst?
+  00D8 5004  		JNC L0058
+  00DA C2E5  		CLR ACC.5	;clear A.5
+  00DC D204  		SETB 4h		;set 4h
+L0058:
+  00DE 02024F		LJMP 	L0059	;[024F]Read 4bytes and output
+
+  00E1 D201  		SETB 1h		;
+  00E3 80C6  		SJMP 	L0056
+  00E5 D200  		SETB 0h
+  00E7 80C0  		SJMP 	L0088
+  00E9 D202  		SETB 2h
+  00EB 80BC  		SJMP 	L0088
+  00ED D2D5  		SETB F0
+  00EF 80BA  		SJMP 	L0056
+  00F1 D205  		SETB 5h
+  00F3 80B4  		SJMP 	L0088
+
+L0091:					;
+  00F5 7F20  		MOV R7, #20h
+  00F7 12003E		LCALL 	L0033	;[Output the Results]
+  00FA 200207		JB 2h, 	L0089
+  00FD 7401  		MOV A, #1h
+  00FF B51A00		CJNE A, 1Ah, 	L0090
+L0090:
+  0102 40F1  		JC 	L0091	;loop on carry set
+L0089:
+  0104 120003		LCALL 	L0092	;get contents of @13h/16h
+  0107 FF    		MOV R7, A	;and load into R7
+L0051:					;CJNE A<>#25h branch
+  0108 12003E		LCALL L0033	;[Output the Results]
+L0099:					;jump in
+  010B 020077		LJMP L0034
+
+  010E D208  		SETB 8h
+  0110 D206  		SETB 6h
+  0112 8095  		SJMP 	L0088
+
+  0114 120003		LCALL	L0092	;get contents of @13h/16h
+  0117 FB    		MOV R3, A	;and load into R3
+  0118 120003		LCALL 	L0092	;get contents of @13h/16h
+  011B FA    		MOV R2, A	;and load into R2
+  011C 120003		LCALL 	L0092	;get contents of @13h/16h
+  011F F9    		MOV R1, A	;and load into R1
+  0120 4A    		ORL A, R2
+  0121 4B    		ORL A, R3
+  0122 7006  		JNZ L0093
+  0124 7920  		MOV R1, #20h
+  0126 7A03  		MOV R2, #3h
+  0128 7BFF  		MOV R3, #0FFh
+L0093:
+  012A 20022E		JB 2h, L0094
+  012D E51A  		MOV A, 1Ah
+  012F 602A  		JZ L0094
+  0131 7E00  		MOV R6, #0h
+L0097:					;start of loop 
+  0133 8E82  		MOV DPL, R6
+  0135 758300		MOV DPH, #0h
+  0138 1204BE		LCALL L0095	;get Mem data => A [04BE]
+  013B 6006  		JZ L0096
+  013D 0E    		INC R6
+  013E EE    		MOV A, R6
+  013F 651B  		XRL A, 1Bh
+  0141 70F0  		JNZ L0097	;Check A, loop back up <>0
+L0096:
+  0143 C2D5  		CLR F0
+  0145 EB    		MOV A, R3
+  0146 C0E0  		PUSH ACC
+  0148 EA    		MOV A, R2
+  0149 C0E0  		PUSH ACC
+  014B E9    		MOV A, R1
+  014C C0E0  		PUSH ACC
+  014E EE    		MOV A, R6
+  014F 120296		LCALL L0098
+  0152 D0E0  		POP ACC
+  0154 F9    		MOV R1, A
+  0155 D0E0  		POP ACC
+  0157 FA    		MOV R2, A
+  0158 D0E0  		POP ACC
+  015A FB    		MOV R3, A
+L0094:
+  015B 1204A5		LCALL L0062	;[Move data to A] and return
+  015E FF    		MOV R7, A	;put the data into R7
+  015F 60AA  		JZ 	L0099	;Check A, loop back up in
+  0161 EB    		MOV A, R3
+  0162 C0E0  		PUSH ACC
+  0164 EA    		MOV A, R2
+  0165 C0E0  		PUSH ACC
+  0167 E9    		MOV A, R1
+  0168 C0E0  		PUSH ACC
+  016A 12003E		LCALL L0033	;[Output the Results]
+  016D D0E0  		POP ACC
+  016F 2401  		ADD A, #1h
+  0171 F9    		MOV R1, A
+  0172 D0E0  		POP ACC
+  0174 3400  		ADDC A, #0h
+  0176 FA    		MOV R2, A
+  0177 D0E0  		POP ACC
+  0179 FB    		MOV R3, A
+  017A E51B  		MOV A, 1Bh
+  017C 04    		INC A
+  017D 60DC  		JZ L0094
+  017F D51BD9		DJNZ 1Bh, L0094
+  0182 8087  		SJMP 	L0099	;loop back up in [010B]
+;ep
+  0184 7BFF  		MOV R3, #0FFh	;ep
+  0186 7A02  		MOV R2, #2h
+  0188 7992  		MOV R1, #92h
+  018A D202  		SETB 2h
+  018C 809C  		SJMP 	L0093
+L0165:					;ep removed
+  018E 7910  		MOV R1, #10h
+  0190 8002  		SJMP 	L0119
+;ep
+  0192 7908  		MOV R1, #8h
+L0119:
+  0194 C206  		CLR 6h
+  0196 C208  		CLR 8h
+  0198 8008  		SJMP  L0120
+;ep
+  019A D2D5  		SETB F0
+  019C 790A  		MOV R1, #0Ah
+  019E 8004  		SJMP 	L0136
+;ep
+  01A0 790A    		MOV R1, #0Ah
+L0120:
+  01A2 C2D5  		CLR F0
+L0136:
+  01A4 E51B  		MOV A, 1Bh
+  01A6 04    		INC A
+  01A7 7002  		JNZ L0121
+  01A9 F51B  		MOV 1Bh, A
+L0121:
+  01AB E4    		CLR A		;clear registers 2,5,6,7
+  01AC FA    		MOV R2, A
+  01AD FD    		MOV R5, A
+  01AE FE    		MOV R6, A
+  01AF FF    		MOV R7, A
+  01B0 120003		LCALL 	L0092	;get contents of @13h/16h
+  01B3 FC    		MOV R4, A	;and load into R4
+  01B4 7B08  		MOV R3, #8h	;load '8' into R3
+  01B6 200113		JB 1h, L0122
+  01B9 120003		LCALL 	L0092	;get contents of @13h/16h
+  01BC FD    		MOV R5, A	;and load into R5
+  01BD 7B10  		MOV R3, #10h	;load '16' 10h R3
+  01BF 30000A		JNB 0h, L0122
+  01C2 120003		LCALL 	L0092	;get contents of @13h/16h
+  01C5 FE    		MOV R6, A	;and load into R6
+  01C6 120003		LCALL 	L0092	;get contents of @13h/16h
+  01C9 FF    		MOV R7, A	;and load into R7
+  01CA 7B20  		MOV R3, #20h	;load '32' 20h R3
+L0122:
+  01CC EC    		MOV A, R4
+  01CD 33    		RLC A
+  01CE 82D5  		ANL C, F0	;bit .0 of ?
+  01D0 92D5  		MOV F0, C
+  01D2 5013  		JNC L0123
+  01D4 C3    		CLR C
+  01D5 E4    		CLR A
+  01D6 300006		JNB 0h, L0124
+  01D9 9F    		SUBB A, R7	;do some math
+  01DA FF    		MOV R7, A
+  01DB E4    		CLR A
+  01DC 9E    		SUBB A, R6
+  01DD FE    		MOV R6, A
+  01DE E4    		CLR A
+L0124:
+  01DF 200103		JB 1h, L0125
+  01E2 9D    		SUBB A, R5
+  01E3 FD    		MOV R5, A
+  01E4 E4    		CLR A
+L0125:
+  01E5 9C    		SUBB A, R4
+  01E6 FC    		MOV R4, A
+L0123:
+  01E7 E4    		CLR A
+  01E8 CB    		XCH A, R3
+  01E9 F8    		MOV R0, A
+  01EA C201  		CLR 1h
+L0127:
+  01EC EC    		MOV A, R4
+  01ED 700C  		JNZ L0126
+  01EF CF    		XCH A, R7
+  01F0 CE    		XCH A, R6
+  01F1 CD    		XCH A, R5
+  01F2 CC    		XCH A, R4
+  01F3 E8    		MOV A, R0
+  01F4 24F8  		ADD A, #0F8h
+  01F6 F8    		MOV R0, A
+  01F7 70F3  		JNZ L0127
+  01F9 8017  		SJMP 	L0128
+
+L0126:
+  01FB C3    		CLR C
+  01FC EF    		MOV A, R7
+  01FD 33    		RLC A
+  01FE FF    		MOV R7, A
+  01FF EE    		MOV A, R6
+  0200 33    		RLC A
+  0201 FE    		MOV R6, A
+  0202 ED    		MOV A, R5
+  0203 33    		RLC A
+  0204 FD    		MOV R5, A
+  0205 EC    		MOV A, R4
+  0206 33    		RLC A
+  0207 FC    		MOV R4, A
+  0208 EB    		MOV A, R3
+  0209 33    		RLC A
+  020A FB    		MOV R3, A
+  020B 99    		SUBB A, R1
+  020C 4002  		JC   L0135
+  020E FB    		MOV R3, A
+  020F 0F    		INC R7
+L0135:
+  0210 D8E9  		DJNZ R0,L0126	;stay in loop for R0
+L0128:
+  0212 EB    		MOV A, R3
+  0213 300105		JNB 1h, L0129
+  0216 F8    		MOV R0, A
+  0217 D0E0  		POP ACC
+  0219 C4    		SWAP A
+  021A 48    		ORL A, R0
+L0129:
+  021B B201  		CPL 1h
+  021D C0E0  		PUSH ACC
+  021F 0A    		INC R2
+  0220 EC    		MOV A, R4
+  0221 4D    		ORL A, R5
+  0222 4E    		ORL A, R6
+  0223 4F    		ORL A, R7
+  0224 7820  		MOV R0, #20h
+  0226 7B00  		MOV R3, #0h
+  0228 70C2  		JNZ L0127
+  022A EA    		MOV A, R2
+  022B B51B00		CJNE A,1Bh,L0130 ;seems a useless jump?
+L0130:
+  022E 40BC  		JC L0127
+  0230 C0E0  		PUSH ACC
+  0232 120298		LCALL L0131
+  0235 D0F0  		POP B
+L0134:
+  0237 D0E0  		POP ACC
+  0239 200104		JB 1h, L0132
+  023C C4    		SWAP A
+  023D C0E0  		PUSH ACC
+  023F C4    		SWAP A
+L0132:
+  0240 B201  		CPL 1h
+  0242 C0F0  		PUSH B
+  0244 120027		LCALL L0133
+  0247 D0F0  		POP B
+  0249 D5F0EB		DJNZ B, L0134
+  024C 020077		LJMP 	L0034
+
+L0059:					;[00DE] LJump
+  024F 12050D		LCALL	 L0060	;read 4-bytes code @DPTR
+  0252 0114  		AJMP	 L0061	;call [prepare for output]
+
+;ep
+; possibly data section?  code doesn't match call labels missing
+  0254 53018E		ANL 1h, #8Eh	;?TCON TR1 bit, SFR 88h ?
+  0257 58    		ANL A, R0
+
+  0258 00    		NOP
+  0259 E54C  		MOV A, 4Ch
+
+  025B 00    		NOP
+  025C E142  		AJMP 	L0137	;no call label for this jump
+
+;ep
+  025E 0192  		AJMP 	L0151	;no call label for this jump
+
+;ep
+  0260 4F    		ORL A, R7
+  0261 019A  		AJMP 	L0152	;no call label for this jump
+
+;ep
+  0263 4401  		ORL A, #1h
+  0265 9A    		SUBB A, R2
+  0266 49    		ORL A, R1
+
+  0267 00    		NOP
+  0268 FA    		MOV R2, A
+  0269 4301A0		ORL 1h, #0A0h
+  026C 5501  		ANL A, 1h
+  026E 84    		DIV AB
+  026F 46    		ORL A, @R0
+  0270 0184  		AJMP  L0153	;no label end[0003] block file-
+; pc
+
+;ep
+  0272 4501  		ORL A, 1h	;continuation ?
+  0274 84    		DIV AB
+  0275 47    		ORL A, @R1
+  0276 03    		RR A
+  0277 4050  		JC   L0154	;no call label for this jump
+
+  0279 00    		NOP
+  027A E9    		MOV A, R1
+  027B 2D    		ADD A, R5
+
+  027C 00    		NOP
+  027D ED    		MOV A, R5
+  027E 2E    		ADD A, R6
+  027F 0110  		AJMP  L0155	;no call label for this jump
+
+;ep
+  0281 2B    		ADD A, R3
+
+  0282 00    		NOP
+  0283 F123  		ACALL 	L0156	;no call label for this jump
+  0285 010E  		AJMP 	L0157	;no meaning label [000E]
+
+;ep
+  0287 200329		JB 3h, 	L0158	;no call label for this jump
+  028A 2A    		ADD A, R2
+
+  028B 00    		NOP
+  028C A948  		MOV R1, 48h
+
+  028E 00    		NOP
+  028F 00    		NOP
+  0290 0108  		AJMP 	L0159	;not a real label [0008] ?
+
+  0292 3F    		DB 03Fh ; '?'
+  0293 3F    		DB 03Fh ; '?'
+  0294 3F    		DB 03Fh ; '?'
+  0295 00    		DB 000h 
+;data bytes ?
+;
+;
+L0098:					;called from[014F]
+  0296 790A  		MOV R1, #0Ah
+L0131:
+  0298 A2D5  		MOV C, F0
+  029A 200314		JB 3h, L0100
+  029D 300509		JNB 5h, L0101
+  02A0 B91002		CJNE R1, #10h, L0102
+  02A3 04    		INC A
+  02A4 04    		INC A
+L0102:
+  02A5 B90801		CJNE R1, #8h, L0101
+  02A8 04    		INC A
+L0101:
+  02A9 A2D5  		MOV C, F0
+  02AB 200602		JB 6h, L0103
+  02AE 5001  		JNC L0100
+L0103:
+  02B0 04    		INC A
+L0100:
+  02B1 200268		JB 2h, L0104	;Check bit 2h <?>
+  02B4 9202  		MOV 2h, C
+  02B6 B51A00		CJNE A, 1Ah, L0105
+L0105:
+  02B9 5034  		JNC L0106
+L0109:
+  02BB C0E0  		PUSH ACC
+  02BD 7F20  		MOV R7, #20h	;32 bytes or ' ' space
+  02BF 300319		JNB 3h, L0107
+  02C2 7F30  		MOV R7, #30h	;48 bytes or '0' zero
+  02C4 A202  		MOV C, 2h
+  02C6 7206  		ORL C, 6h
+  02C8 7205  		ORL C, 5h
+  02CA 500F  		JNC  L0107
+  02CC 1202EF		LCALL L0106
+  02CF C202  		CLR 2h
+  02D1 C206  		CLR 6h
+  02D3 C205  		CLR 5h
+  02D5 C208  		CLR 8h
+  02D7 7F30  		MOV R7, #30h
+  02D9 800F  		SJMP 	L0108
+L0107:
+  02DB 300503		JNB 5h, L0115
+  02DE E9    		MOV A, R1
+  02DF C0E0  		PUSH ACC
+L0115:
+  02E1 12003E		LCALL 	L0033	;[Output the Results]
+  02E4 300503		JNB 5h, L0108
+  02E7 D0E0  		POP ACC
+  02E9 F9    		MOV R1, A
+L0108:
+  02EA D0E0  		POP ACC
+  02EC B51ACC		CJNE A, 1Ah, L0109
+L0106:
+  02EF 300517		JNB 5h, L0110
+  02F2 7F30  		MOV R7, #30h	; '0'
+  02F4 B9100C		CJNE R1,#10h,L0111 ;check R1<?> '16'
+  02F7 12003E		LCALL 	L0033	;[Output the Results]
+  02FA 7F58  		MOV R7, #58h	:check bit 4h and load R7 'X'
+  02FC 300407		JNB 4h, L0112	;if 4h clr, then R7=#58h fail
+  02FF 7F78  		MOV R7, #78h	;if 4h set, then R7=#78h 'x'
+  0301 8003  		SJMP 	L0112	;jump to sub call
+L0111:					;branched to for R1<>'16' 10h
+  0303 B90803		CJNE R1, #8h, L0110 ;check R1<?> '8'
+L0112:					;
+  0306 12003E		LCALL 	L0033	;[Output the Results]
+L0110:					;branched to for R1<>'8'
+  0309 300205		JNB 2h, L0113
+  030C 7F2D  		MOV R7, #2Dh	;'-'
+L0114:
+  030E 02003E		LJMP 	L0033	;[Output the Results]
+L0113:
+  0311 7F20  		MOV R7, #20h	;' ' space
+  0313 2008F8		JB 8h, L0114
+  0316 7F2B  		MOV R7, #2Bh	;'+'
+  0318 2006F3		JB 6h, L0114
+  031B 22    		RET		;end sub
+
+L0104:					;called from [02B1]
+  031C 9202  		MOV 2h, C	; when bit 2h set
+  031E 80CF  		SJMP 	L0106
+
+;?
+  0320 28    		DB 028h ; '('
+  0321 6E    		DB 06Eh ; 'n'
+  0322 75    		DB 075h ; 'u'
+  0323 6C    		DB 06Ch ; 'l'
+  0324 6C    		DB 06Ch ; 'l'
+  0325 29    		DB 029h ; ')'
+  0326 00    		NOP
+
+L0160:
+  0327 D201  		SETB 1h
+  0329 120003		LCALL 	L0092	;get contents of @13h/16h
+  032C 3001F8		JNB 1h, L0160
+  032F C201  		CLR 1h
+  0331 781A  		MOV R0, #1Ah	;load '26' 1Ah R0
+  0333 30D501		JNB F0, L0161	;branch if bit F.0
+  0336 08    		INC R0		; 1Ah ++1
+L0161:					;get contents of @1A +
+  0337 F6    		MOV @R0, A	;@1A = '4' by [0359]
+  0338 0200A9		LJMP 	L0088
+
+;Data table
+  033B 2D    		DB 02Dh ; '-'	;DPTR set to here [034B]
+  033C 50    		DB 050h ; 'P'	
+  033D 43    		DB 043h ; 'C'	code
+  033E 49    		DB 049h ; 'I'	idata
+  033F 58    		DB 058h ; 'X'	xdata
+
+;no call label				;entry point after run 'u'
+  0340 120003		LCALL 	L0092	;get contents of @13h/16h
+  0343 2403  		ADD A, #3h	;
+  0345 B40500		CJNE A,#5h,L0162 ;?expecting a '5' ?
+L0162:
+  0348 4001  		JC L0163
+  034A E4    		CLR A
+L0163:
+  034B 90033B		MOV DPTR, #33Bh	;Set to data table above
+  034E 93    		MOVC A, @A+DPTR	;get code from 2Dh
+  034F 12002F		LCALL 	L0164	;send out result
+  0352 743A  		MOV A, #3Ah	;load A with ':'
+  0354 12002F		LCALL 	L0164	;send out result
+  0357 D203  		SETB 3h
+  0359 751A04		MOV 1Ah, #4h	;load a '4' into @1Ah
+  035C 02018E		LJMP 	L0165	;end of long []block hex file-
+
+
+L0015:	;1 time at startup		;LJMP entry during startup
+  035F 120858		LCALL	L0016	;[load SFRs] begin hex block- 
+  0362 7FF4  		MOV R7, #0F4h	;load R7='244'
+  0364 7E01  		MOV R6, #1h	;R6='1'
+  0366 1208BA		LCALL 	L0017	;[Delay Loop] ~360 msec
+  0369 1205BF		LCALL 	L0018
+L0031:					;
+  036C E4    		CLR A
+  036D F526  		MOV 26h, A
+L0020:
+  036F 1208D4		LCALL 	L0019	;Go read the serial port
+  0372 BF3AFA		CJNE R7,#3Ah,L0020 ; ':' waiting for a colon
+  0375 120879		LCALL	L0021	;send out serial port
+  0378 8F23  		MOV 23h, R7
+  037A 120879		LCALL 	L0021	;send out serial port
+  037D 8F27  		MOV 27h, R7
+  037F 120879		LCALL 	L0021	;send out serial port
+  0382 8F24  		MOV 24h, R7
+  0384 120879		LCALL 	L0021	;send out serial port
+  0387 8F25  		MOV 25h, R7
+  0389 E4    		CLR A
+  038A F508  		MOV 8h, A
+L0023:					;start this loop
+  038C E508  		MOV A, 8h
+  038E C3    		CLR C
+  038F 9523  		SUBB A, 23h
+  0391 500E  		JNC  L0022	;exit this loop
+  0393 120879		LCALL 	L0021	;send out serial port
+  0396 7429  		MOV A, #29h
+  0398 2508  		ADD A, 8h
+  039A F8    		MOV R0, A
+  039B A607  		MOV @R0, 7h
+  039D 0508  		INC 8h
+  039F 80EB  		SJMP L0023	;stay in this loop
+L0022:
+  03A1 852628		MOV 28h, 26h
+  03A4 120879		LCALL 	L0021	;send out serial port
+  03A7 EF    		MOV A, R7
+  03A8 6528  		XRL A, 28h
+  03AA 6009  		JZ  L0028
+  03AC 7BFF  		MOV R3, #0FFh
+  03AE 7A09  		MOV R2, #9h
+  03B0 790E  		MOV R1, #0Eh
+  03B2 020493		LJMP 	L0029
+L0028:
+  03B5 E525  		MOV A, 25h
+  03B7 B40900		CJNE A,#9h,L0070
+L0070:
+  03BA 4003  		JC   L0071
+  03BC 020499		LJMP 	L0072	;
+L0071:					;
+  03BF 9003C6		MOV DPTR, #03C6h   ;Set DP to Jump Table
+  03C2 F8    		MOV R0, A
+  03C3 28    		ADD A, R0
+  03C4 28    		ADD A, R0
+  03C5 73    		JMP @A+DPTR
+
+	;Long Jump Table from Function Codes? Branch to load R1,2,3
+  03C6 0203E1		LJMP 	L0166	;0 Program User Code Mem Page
+  03C9 0203ED		LJMP 	L0172	;1 Read Version ID
+  03CC 020400		LJMP 	L0177	;2 Misc Write Functions
+  03CF 02040C		LJMP 	L0182	;3 Misc Read Functions
+  03D2 02041B		LJMP 	L0186	;4 Erase Sector or Page
+  03D5 020444		LJMP 	L0194	;5 Read Sector CRC
+  03D8 020467		LJMP 	L0199	;6 Read Global CRC
+  03DB 020499		LJMP 	L0072	;7 Direct Load of Baud Rate
+  03DE 02048A		LJMP 	L0203	;8 Reset MCU
+
+L0166:					;from Long Jump #0
+  03E1 1207BF		LCALL 	L0167
+  03E4 7BFF  		MOV R3, #0FFh	;255
+  03E6 7A09  		MOV R2, #9h	;9
+  03E8 7911  		MOV R1, #11h	;17
+  03EA 020493		LJMP 	L0029
+
+L0172:					;from Long Jump #1
+  03ED 7F07  		MOV R7, #7h
+  03EF 120674		LCALL 	L0173
+  03F2 7F07  		MOV R7, #7h
+  03F4 120674		LCALL L0173
+  03F7 7BFF  		MOV R3, #0FFh
+  03F9 7A09  		MOV R2, #9h
+  03FB 7911  		MOV R1, #11h
+  03FD 020493		LJMP 	L0029
+
+L0177:					;from Long Jump #2
+  0400 12061D		LCALL 	L0178
+  0403 7BFF  		MOV R3, #0FFh
+  0405 7A09  		MOV R2, #9h
+  0407 7911  		MOV R1, #11h
+  0409 020493		LJMP 	L0029
+
+L0182:					;from Long Jump #3
+  040C 120835		LCALL 	L0183
+  040F 120670		LCALL 	L0184
+  0412 7BFF  		MOV R3, #0FFh
+  0414 7A09  		MOV R2, #9h
+  0416 7911  		MOV R1, #11h
+  0418 020493		LJMP 	L0029
+
+L0186:					;from Long Jump #4
+  041B 7829  		MOV R0, #29h
+  041D E6    		MOV A, @R0
+  041E 700B  		JNZ 	L0187
+  0420 12089A		LCALL 	L0188	;call sub erase page 00
+  0423 7BFF  		MOV R3, #0FFh
+  0425 7A09  		MOV R2, #9h
+  0427 7911  		MOV R1, #11h
+  0429 8068  		SJMP 	L0029
+
+L0187:					;jnz branch
+  042B 7829  		MOV R0, #29h
+  042D E6    		MOV A, @R0
+  042E B4010B		CJNE A,#1h,L0191 ; erase sector 01
+  0431 1208EA		LCALL 	L0192	;call sub
+  0434 7BFF  		MOV R3, #0FFh
+  0436 7A09  		MOV R2, #9h
+  0438 7911  		MOV R1, #11h
+  043A 8057  		SJMP 	L0029
+
+L0191:
+  043C 7BFF  		MOV R3, #0FFh
+  043E 7A09  		MOV R2, #9h
+  0440 7914  		MOV R1, #14h
+  0442 804F  		SJMP	 L0029
+
+L0194:					;from Long Jump #5
+  0444 120764		LCALL 	L0195
+  0447 782C  		MOV R0, #2Ch
+  0449 E6    		MOV A, @R0
+  044A FF    		MOV R7, A
+  044B 120674		LCALL 	L0173
+  044E 782B  		MOV R0, #2Bh
+  0450 E6    		MOV A, @R0
+  0451 FF    		MOV R7, A
+  0452 120674		LCALL 	L0173
+  0455 782A  		MOV R0, #2Ah
+  0457 E6    		MOV A, @R0
+  0458 FF    		MOV R7, A
+  0459 120674		LCALL 	L0173
+  045C 120670		LCALL 	L0184
+  045F 7BFF  		MOV R3, #0FFh
+  0461 7A09  		MOV R2, #9h
+  0463 7911  		MOV R1, #11h
+  0465 802C  		SJMP 	L0029
+
+L0199:					;from Long Jump #6
+  0467 120794		LCALL 	L0200
+  046A 782C  		MOV R0, #2Ch
+  046C E6    		MOV A, @R0
+  046D FF    		MOV R7, A
+  046E 120674		LCALL 	L0173
+  0471 782B  		MOV R0, #2Bh
+  0473 E6    		MOV A, @R0
+  0474 FF    		MOV R7, A
+  0475 120674		LCALL 	L0173
+  0478 782A  		MOV R0, #2Ah
+  047A E6    		MOV A, @R0
+  047B FF    		MOV R7, A
+  047C 120674		LCALL 	L0173
+  047F 120670		LCALL 	L0184
+  0482 7BFF  		MOV R3, #0FFh
+  0484 7A09  		MOV R2, #9h
+  0486 7911  		MOV R1, #11h
+  0488 8009  		SJMP 	L0029
+
+L0203:					;from Long Jump #8
+  048A 12080F		LCALL 	L0204
+  048D 7BFF  		MOV R3, #0FFh	;255
+  048F 7A09  		MOV R2, #9h	;9
+  0491 7911  		MOV R1, #11h	;17
+
+L0029:		;jump out from Long Jumps 0-6,8
+  0493 120065		LCALL 	L0030
+  0496 02036C		LJMP 	L0031	;jump out
+
+L0072:					;from Long Jump #7
+  0499 7BFF  		MOV R3, #0FFh	;255
+  049B 7A09  		MOV R2, #9h	;9
+  049D 7914  		MOV R1, #14h	;20
+  049F 120065		LCALL 	L0030	;	
+  04A2 02036C		LJMP 	L0031	;end [035F] block hex file-
+
+;=====
+L0062:	;LJ[001A] LC[015B] 		;[Reads RAM,Code,ExtMem to A]
+  04A5 BB0106		CJNE R3,#1h,L0063 ;if R3=1, then
+  04A8 8982  		MOV DPL, R1	;load DPTR from R1,2
+  04AA 8A83  		MOV DPH, R2	;and read data from ext memory
+  04AC E0    		MOVX A, @DPTR	;at DPTR into A, and
+  04AD 22    		RET		;return, else
+L0063:					;if R3<>1, then
+  04AE 5002  		JNC L0064	;check C<?>, if C=1, then
+  04B0 E7    		MOV A, @R1	;read contents @R1 into A, and
+  04B1 22    		RET		;return, else
+L0064:					;if C=0, then check R3 <?>
+  04B2 BBFE02		CJNE R3,#0FEh,L0065 ;if R3 = FEh '-2', then
+  04B5 E3    		MOVX A, @R1	;move contents @R1 into A, and
+  04B6 22    		RET		;return, else
+L0065:					;if R3<>-2 FEh, then
+  04B7 8982  		MOV DPL, R1	;load DPTR from R!,2,
+  04B9 8A83  		MOV DPH, R2
+  04BB E4    		CLR A
+  04BC 93    		MOVC A, @A+DPTR	;move code memory @DPTR into A
+  04BD 22    		RET		; end here
+;=====	Returns data from either RAM,Code,or External Memory.
+;=====  Using Flags (R3,C), Addresses from (R1,R2)
+;=====  R3=1 is flag for Ext Mem 16-bit address
+;=====  C =1 is flag for RAM
+;=====  C=0 R3=-2  is flag for Ext Mem 8-bit address 
+;=====  C=0 R3<>-2 is flag for 16-bit Code Memory
+
+
+L0095:					;move data to A
+  04BE BB010C		CJNE R3, #1h, L0116	;begin hex block-
+  04C1 E582  		MOV A, DPL
+  04C3 29    		ADD A, R1
+  04C4 F582  		MOV DPL, A
+  04C6 E583  		MOV A, DPH
+  04C8 3A    		ADDC A, R2
+  04C9 F583  		MOV DPH, A
+  04CB E0    		MOVX A, @DPTR	;move external data to A
+  04CC 22    		RET		; end sub here and return, or
+
+L0116:					;move register value to A
+  04CD 5006  		JNC  L0117
+  04CF E9    		MOV A, R1
+  04D0 2582  		ADD A, DPL
+  04D2 F8    		MOV R0, A
+  04D3 E6    		MOV A, @R0
+  04D4 22    		RET		;end here, or
+
+L0117:					; move external data 
+  04D5 BBFE06		CJNE R3, #0FEh, L0118
+  04D8 E9    		MOV A, R1
+  04D9 2582  		ADD A, DPL
+  04DB F8    		MOV R0, A
+  04DC E2    		MOVX A, @R0	;move external data to A
+  04DD 22    		RET		;end here, or
+
+L0118:					;move code memory to A
+  04DE E582  		MOV A, DPL
+  04E0 29    		ADD A, R1
+  04E1 F582  		MOV DPL, A
+  04E3 E583  		MOV A, DPH
+  04E5 3A    		ADDC A, R2
+  04E6 F583  		MOV DPH, A
+  04E8 E4    		CLR A
+  04E9 93    		MOVC A, @A+DPTR
+  04EA 22    		RET		;end here end [
+
+;=====
+L0039:	once from[0059]	;Write data to 8- or 16-bit memory address subroutine
+  04EB BB0106		CJNE R3,#1h,L0040 ;  Check R3 <?>
+  04EE 8982  		MOV DPL, R1	;if R3 = 1, then
+  04F0 8A83  		MOV DPH, R2	;load DPTR from R1,2 and
+  04F2 F0    		MOVX @DPTR, A	;store/write A to ext mem @DPTR 
+  04F3 22    		RET		;and return, else
+
+L0040:					;if R3 <> 1, and
+  04F4 5002  		JNC 	L0041	;if C is set, then
+  04F6 F7    		MOV @R1, A	;store A into RAM @R1
+  04F7 22    		RET		;and return, else
+
+L0041:					;if C is clr, and  
+  04F8 BBFE01		CJNE R3, #0FEh,L0042 ;  R3 = -2, then
+  04FB F3    		MOVX @R1, A	;store/write A to ext mem @R1,
+L0042:					;else if R3 <> -2, then
+  04FC 22    		RET		;end [] block hex file-
+;=====
+
+L0038:	twice [0017,0055]	(A,B,R0	;Called after loading B
+  04FD FA    		MOV R2, A	;    begin hex block-
+  04FE E6    		MOV A, @R0	;Store A into R2, then read
+  04FF FB    		MOV R3, A	;byte @R0 and store it into R3,
+  0500 08    		INC R0		;then increment R0 twice, and
+  0501 08    		INC R0
+  0502 E6    		MOV A, @R0	;read byte at this new address
+  0503 F9    		MOV R1, A	;and store it into R1, then
+  0504 25F0  		ADD A, B	;add B='1' to A, and store A
+  0506 F6    		MOV @R0, A	;at the new @R0 RAM address
+  0507 18    		DEC R0		;now decrement R0 read @R0
+  0508 E6    		MOV A, @R0	;and add value to original
+  0509 CA    		XCH A, R2	;entry A value
+  050A 3A    		ADDC A, R2
+  050B F6    		MOV @R0, A	;store new value at new R0
+  050C 22    		RET		;Result (R1,R2,R3 loaded with 
+		;values from memory determined by R0, and a new R0
+
+L0060:		callled from [024F]	;Begin subroutine here
+  050D D083  		POP DPH		;Reads 4 byte of code
+  050F D082  		POP DPL		;determined by DPTR
+  0511 F8    		MOV R0, A	;[4-bytes code DPTR]
+L0068:					;loop branch keep reading
+  0512 E4    		CLR A		;until you hit a '00'
+  0513 93    		MOVC A, @A+DPTR	; see data table [08xx]
+  0514 7012  		JNZ 	L0066	
+  0516 7401  		MOV A, #1h
+  0518 93    		MOVC A, @A+DPTR
+  0519 700D  		JNZ 	L0066	;branch if A<>0
+  051B A3    		INC DPTR
+  051C A3    		INC DPTR
+L0067:
+  051D 93    		MOVC A, @A+DPTR
+  051E F8    		MOV R0, A
+  051F 7401  		MOV A, #1h
+  0521 93    		MOVC A, @A+DPTR
+  0522 C0E0  		PUSH ACC
+  0524 E8    		MOV A, R0
+  0525 C0E0  		PUSH ACC
+  0527 22    		RET		;End sub here
+L0066:					;branch for loop
+  0528 7402  		MOV A, #2h
+  052A 93    		MOVC A, @A+DPTR
+  052B 68    		XRL A, R0
+  052C 60EF  		JZ L0067	;exit path when A=0
+  052E A3    		INC DPTR
+  052F A3    		INC DPTR
+  0530 A3    		INC DPTR
+  0531 80DF  		SJMP 	L0068	;loop back ;end [04FD] file-
+
+
+L0001:	;Startup begins			;STARTS HERE
+  0533 787F  		MOV R0, #7Fh	;clears 128 RAM memory bytes
+  0535 E4    		CLR A
+L0002:					;loop label for djnz R0
+  0536 F6    		MOV @R0, A	;decrement and clear RAM at R0
+  0537 D8FD  		DJNZ R0, L0002	;until R0 =0, then
+  0539 758168		MOV SP, #68h	;load stack pointer '104' bytes
+  053C 02057A		LJMP 	L0003	;Load DPTR =08FE at startup
+
+
+L0004:	;called from L0009[057D]  when DPTR table read returns 00
+  053F 02035F		LJMP 	L0015	;Jump to 035F begin hex block-
+
+L0006:					;jump from L0009/5 jz A=0
+  0542 E4    		CLR A
+  0543 93    		MOVC A, @A+DPTR	;read code byte @DPTR address
+  0544 A3    		INC DPTR
+  0545 F8    		MOV R0, A	;and hold it in R0
+L0014:					;DJNZ loop on R7
+  0546 E4    		CLR A	
+  0547 93    		MOVC A, @A+DPTR	;then read the next code byte
+  0548 A3    		INC DPTR	
+  0549 4003  		JC 	L0012	;check C bit
+  054B F6    		MOV @R0, A	;if C clr, store in RAM @R0
+  054C 8001  		SJMP 	L0013
+L0012:					;if C set, then
+  054E F2    		MOVX @R0, A	;store byte in Ext Mem @R0
+L0013:
+  054F 08    		INC R0		;then increment R0, and
+  0550 DFF4  		DJNZ R7, L0014	;repeat loop until R7=0
+  0552 8029  		SJMP 	L0009
+
+L0007:					;jump from 059A in L0005
+  0554 E4    		CLR A
+  0555 93    		MOVC A, @A+DPTR
+  0556 A3    		INC DPTR
+  0557 F8    		MOV R0, A
+  0558 5407  		ANL A, #7h
+  055A 240C  		ADD A, #0Ch
+  055C C8    		XCH A, R0
+  055D C3    		CLR C
+  055E 33    		RLC A
+  055F C4    		SWAP A
+  0560 540F  		ANL A, #0Fh
+  0562 4420  		ORL A, #20h
+  0564 C8    		XCH A, R0
+  0565 83    		MOVC A, @A+PC
+  0566 4004  		JC 	L0010
+  0568 F4    		CPL A
+  0569 56    		ANL A, @R0
+  056A 8001  		SJMP 	L0011
+
+L0010:
+  056C 46    		ORL A, @R0
+L0011:
+  056D F6    		MOV @R0, A
+  056E DFE4  		DJNZ R7,  L0007
+  0570 800B  		SJMP 	L0009
+
+  0572 01    		DB 	001h 	;DATA TABLE ?
+  0573 02    		DB 	002h 
+  0574 04    		DB 	004h 
+  0575 08    		DB 	008h 
+  0576 10    		DB 	010h 
+  0577 20    		DB 	020h 
+  0578 40    		DB 	040h 
+  0579 80    		DB	080h 
+
+L0003:	called once during startup
+  057A 9008FE		MOV DPTR, #08FEh ;Load Data Pointer to 08FE
+
+L0009:	3 times				;sjmp when done reading
+  057D E4    		CLR A
+  057E 7E01  		MOV R6, #1h	;R6 counter # reads?
+  0580 93    		MOVC A, @A+DPTR	;read code byte @DPTR
+  0581 60BC  		JZ 	L0004	;if 00 then exit sub call
+  0583 A3    		INC DPTR
+  0584 FF    		MOV R7, A	;store 1st byte in R7
+  0585 543F  		ANL A, #3Fh
+  0587 30E509		JNB ACC.5, L0005
+  058A 541F  		ANL A, #1Fh	;? set limit on counter?
+  058C FE    		MOV R6, A
+  058D E4    		CLR A
+  058E 93    		MOVC A, @A+DPTR	;read 2nd byte
+  058F A3    		INC DPTR
+  0590 6001  		JZ  L0005
+  0592 0E    		INC R6	
+L0005:
+  0593 CF    		XCH A, R7
+  0594 54C0  		ANL A, #0C0h
+  0596 25E0  		ADD A, ACC
+  0598 60A8  		JZ 	L0006
+  059A 40B8  		JC	L0007
+  059C E4    		CLR A
+  059D 93    		MOVC A, @A+DPTR
+  059E A3    		INC DPTR
+  059F FA    		MOV R2, A
+  05A0 E4    		CLR A
+  05A1 93    		MOVC A, @A+DPTR
+  05A2 A3    		INC DPTR
+  05A3 F8    		MOV R0, A
+L0008:					;loop until data stored
+  05A4 E4    		CLR A
+  05A5 93    		MOVC A, @A+DPTR	;read a Code byte @DPTR
+  05A6 A3    		INC DPTR
+  05A7 C8    		XCH A, R0	
+  05A8 C582  		XCH A, DPL
+  05AA C8    		XCH A, R0	;put DPL+1 into R0
+  05AB CA    		XCH A, R2
+  05AC C583  		XCH A, DPH	;put DPH into R2
+  05AE CA    		XCH A, R2
+  05AF F0    		MOVX @DPTR, A	;write to Ext Mem @DPTR+1
+  05B0 A3    		INC DPTR
+  05B1 C8    		XCH A, R0
+  05B2 C582  		XCH A, DPL
+  05B4 C8    		XCH A, R0
+  05B5 CA    		XCH A, R2
+  05B6 C583  		XCH A, DPH
+  05B8 CA    		XCH A, R2
+  05B9 DFE9  		DJNZ R7, L0008	;repeat loop till empty
+  05BB DEE7  		DJNZ R6, L0008	;repeat loop till empty
+  05BD 80BE  		SJMP  L0009	;end [053F] block hex file-
+
+
+L0018:	;called during startup		;Clears registers and ports
+  05BF E4    		CLR A		;and bits,   begin hex block-
+  05C0 FF    		MOV R7, A	;and uses 4 delay timers
+  05C1 FD    		MOV R5, A
+  05C2 FC    		MOV R4, A
+  05C3 F580  		MOV P0, A	;ports
+  05C5 F5A0  		MOV P2, A
+  05C7 F5B0  		MOV P3, A
+  05C9 C2A3  		CLR P2.3	;bits
+  05CB C296  		CLR P1.6
+L0074:					;a delay timer loop
+  05CD 0D    		INC R5
+  05CE BD0001		CJNE R5, #0h, L0073
+  05D1 0C    		INC R4
+L0073:					;
+  05D2 BC13F8		CJNE R4, #13h, L0074
+  05D5 BD88F5		CJNE R5, #88h, L0074
+  05D8 C2A3  		CLR P2.3	;clearing bit Port 2.3
+  05DA 7580CF		MOV P0, #0CFh	;writing to Ports 0,1,2,3
+  05DD 7590BF		MOV P1, #0BFh
+  05E0 75A0FF		MOV P2, #0FFh
+  05E3 75B0FF		MOV P3, #0FFh
+  05E6 E4    		CLR A
+  05E7 FC    		MOV R4, A
+  05E8 FD    		MOV R5, A
+L0076:					;a 2nd delay timer loop
+  05E9 0D    		INC R5
+  05EA BD0001		CJNE R5,#0h,L0075
+  05ED 0C    		INC R4
+L0075:
+  05EE BC07F8		CJNE R4,#7h,L0076
+  05F1 BDD0F5		CJNE R5,#0D0h,L0076
+  05F4 E4    		CLR A
+  05F5 FF    		MOV R7, A
+L0081:
+  05F6 D296  		SETB P1.6	;before setting Port1.6 
+  05F8 E4    		CLR A
+  05F9 FC    		MOV R4, A
+  05FA FD    		MOV R5, A
+L0078:					;a 3rd delay timer loop
+  05FB 0D    		INC R5
+  05FC BD0001		CJNE R5, #0h, L0077
+  05FF 0C    		INC R4
+L0077:
+  0600 ED    		MOV A, R5
+  0601 6404  		XRL A, #4h
+  0603 4C    		ORL A, R4
+  0604 70F5  		JNZ 	L0078
+  0606 C296  		CLR P1.6	;before clearing bit
+  0608 E4    		CLR A
+  0609 FC    		MOV R4, A
+  060A FD    		MOV R5, A
+L0080:					;a 4th delay loop
+  060B 0D    		INC R5
+  060C BD0001		CJNE R5, #0h, L0079
+  060F 0C    		INC R4
+L0079:
+  0610 ED    		MOV A, R5
+  0611 6404  		XRL A, #4h
+  0613 4C    		ORL A, R4
+  0614 70F5  		JNZ L0080
+  0616 0F    		INC R7
+  0617 BF07DC		CJNE R7, #7h, L0081
+  061A D296  		SETB P1.6	;to setting bit P1.6
+  061C 22    		RET		;end [05BF] block hex file-
+
+
+L0178:					;Begin hex block-
+  061D E4    		CLR A
+  061E FC    		MOV R4, A
+  061F 7829  		MOV R0, #29h
+  0621 E6    		MOV A, @R0
+  0622 6410  		XRL A, #10h
+  0624 701E  		JNZ 	L0179
+  0626 7F0E  		MOV R7, #0Eh
+  0628 1206CB		LCALL 	L0139	;call ICP sub
+  062B 7F67  		MOV R7, #67h
+  062D 1206CB		LCALL 	L0139	;call ICP sub
+  0630 7F0C  		MOV R7, #0Ch
+  0632 1206CB		LCALL 	L0139	;call ICP sub
+  0635 7F96  		MOV R7, #96h
+  0637 1206CB		LCALL 	L0139	;call ICP sub
+L0180:
+  063A 1206FB		LCALL 	L0140
+  063D AC07  		MOV R4, 7h
+  063F EC    		MOV A, R4
+  0640 20E7F7		JB ACC.7, L0180
+  0643 22    		RET		;end [061D] block hex file-
+
+L0179:
+  0644 7F0E  		MOV R7, #0Eh
+  0646 1206CB		LCALL 	L0139	;call ICP sub
+  0649 7F6C  		MOV R7, #6Ch
+  064B 1206CB		LCALL 	L0139	;call ICP sub
+  064E 7F08  		MOV R7, #8h
+  0650 1206CB		LCALL 	L0139	;call ICP sub
+  0653 7829  		MOV R0, #29h
+  0655 E6    		MOV A, @R0
+  0656 FF    		MOV R7, A
+  0657 1206CB		LCALL 	L0139	;call ICP sub
+  065A 7F0C  		MOV R7, #0Ch
+  065C 1206CB		LCALL 	L0139	;call ICP sub
+  065F 782A  		MOV R0, #2Ah
+  0661 E6    		MOV A, @R0
+  0662 FF    		MOV R7, A
+  0663 1206CB		LCALL 	L0139	;call ICP sub
+L0181:
+  0666 1206FB		LCALL 	L0140
+  0669 AC07  		MOV R4, 7h
+  066B EC    		MOV A, R4
+  066C 20E7F7		JB ACC.7, L0181
+  066F 22    		RET		;end sub
+
+
+L0184:
+  0670 7829  		MOV R0, #29h	;'41' =")"  begin hex block-
+  0672 E6    		MOV A, @R0
+  0673 FF    		MOV R7, A
+L0173:
+  0674 8F09  		MOV 9h, R7
+  0676 EF    		MOV A, R7
+  0677 7804  		MOV R0, #4h
+L0174:
+  0679 A2E7  		MOV C, ACC.7
+  067B 13    		RRC A
+  067C D8FB  		DJNZ R0,L0174
+  067E FF    		MOV R7, A
+  067F 53070F		ANL 7h, #0Fh
+  0682 C3    		CLR C
+  0683 EF    		MOV A, R7
+  0684 6480  		XRL A, #80h
+  0686 948A  		SUBB A, #8Ah
+  0688 4004  		JC L0175
+  068A 7407  		MOV A, #7h
+  068C 2F    		ADD A, R7
+  068D FF    		MOV R7, A
+L0175:
+  068E 7430  		MOV A, #30h
+  0690 2F    		ADD A, R7
+  0691 FF    		MOV R7, A
+  0692 7BFF  		MOV R3, #0FFh
+  0694 7A09  		MOV R2, #9h
+  0696 7917  		MOV R1, #17h
+  0698 F50D  		MOV 0Dh, A
+  069A 120065		LCALL 	L0030
+  069D AF09  		MOV R7, 9h
+  069F 53070F		ANL 7h, #0Fh
+  06A2 C3    		CLR C
+  06A3 EF    		MOV A, R7
+  06A4 6480  		XRL A, #80h
+  06A6 948A  		SUBB A, #8Ah
+  06A8 4004  		JC L0176
+  06AA 7407  		MOV A, #7h
+  06AC 2F    		ADD A, R7
+  06AD FF    		MOV R7, A
+L0176:
+  06AE 7430  		MOV A, #30h
+  06B0 2F    		ADD A, R7
+  06B1 FF    		MOV R7, A
+  06B2 7BFF  		MOV R3, #0FFh
+  06B4 7A09  		MOV R2, #9h
+  06B6 7917  		MOV R1, #17h
+  06B8 F50D  		MOV 0Dh, A
+  06BA 020065		LJMP 	L0030	;end [0670] block hex file-
+
+
+L0189:	;called from 2 locations	;[Preload to ICP]
+  06BD 7F0A  		MOV R7, #0Ah	;       begin hex block-
+  06BF 1206CB		LCALL 	L0139	;call ICP sub
+  06C2 782A  		MOV R0, #2Ah	;
+L0196:
+  06C4 E6    		MOV A, @R0	;load RAM contents to R7
+  06C5 FF    		MOV R7, A
+L0138:
+  06C6 1206CB		LCALL 	L0139	;call ICP sub
+  06C9 7F0E  		MOV R7, #0Eh	;end [06BD] block hex file-
+
+
+L0139:	;called 38 times		;Begin [ICP subroutine]
+  06CB E4    		CLR A		;          begin hex block-
+  06CC 5384CF		ANL 84h, #0CFh	;Sets Port 0.4,0.5 as
+  06CF 5385CF		ANL 85h, #0CFh	;Quasi-bidirectional (SFR)
+  06D2 AE07  		MOV R6, 7h	;retrieve data R7 to send
+  06D4 FD    		MOV R5, A
+L0150:					;-> 8-time loop on R5 -V
+  06D5 C285  		CLR P0.5	;
+  06D7 EE    		MOV A, R6	;Rolling the Acc right to
+  06D8 30E004		JNB ACC.0, L0146
+  06DB D284  		SETB P0.4	;shift bits and toggle the
+  06DD 8002  		SJMP 	L0147	;ICP pins for serial transfer
+
+L0146:
+  06DF C284  		CLR P0.4	;Bit shifting serial stream
+L0147:					; for the data byte
+  06E1 7E01  		MOV R6, #1h
+  06E3 EF    		MOV A, R7	;
+  06E4 7801  		MOV R0, #1h
+  06E6 08    		INC R0
+  06E7 8003  		SJMP L0148
+
+L0149:					;-> loop on R0
+  06E9 A2E7  		MOV C, ACC.7
+  06EB 13    		RRC A		;bit shifting to right
+L0148:
+  06EC D8FB  		DJNZ R0, L0149	;loop on R0 -^
+  06EE FE    		MOV R6, A
+  06EF FF    		MOV R7, A
+  06F0 D285  		SETB P0.5
+  06F2 0D    		INC R5
+  06F3 BD08DF		CJNE R5,#8h,L0150 ; loop 8 times on R5 -^
+  06F6 D284  		SETB P0.4		
+  06F8 D285  		SETB P0.5
+  06FA 22    		RET		;end [06CB] block hex file-
+
+
+L0140:	;called 8 times			;Begin [ICP2 subroutine]
+  06FB 7F0F  		MOV R7, #0Fh	;      begin hex block-
+  06FD 1206CB		LCALL 	L0139	;call ICP -^ [06CB]
+
+L0185:	;called 4 times			;      begin hex block-
+  0700 E4    		CLR A
+  0701 FF    		MOV R7, A
+  0702 FE    		MOV R6, A
+  0703 C285  		CLR P0.5	;toggle the shift clock
+  0705 438410		ORL 84h, #10h	;Set Port0.4 as input only
+L0145:					;loop 8 times on R6 -V
+  0708 D285  		SETB P0.5	;toggle the shift clock
+  070A 308405		JNB P0.4, L0142	;read bit at PDA port
+  070D 430780		ORL 7h, #80h	;OR Mask on register 7h if
+  0710 8003  		SJMP 	L0143	;bit was high, or
+L0142:					;if bit was low then
+  0712 53077F		ANL 7h, #7Fh	;AND Mask on register 7h
+L0143:					;with default PSW 7h = R7
+  0715 C3    		CLR C
+  0716 EE    		MOV A, R6
+  0717 6480  		XRL A, #80h	;set ACC.7
+  0719 9487  		SUBB A, #87h	;
+  071B 5005  		JNC  L0144	;
+  071D EF    		MOV A, R7	;
+  071E A2E7  		MOV C, ACC.7
+  0720 13    		RRC A		;roll ACC to store bit stream
+  0721 FF    		MOV R7, A
+L0144:
+  0722 C285  		CLR P0.5
+  0724 0E    		INC R6
+  0725 BE08E0		CJNE R6,#8h,L0145 ;loop 8 times on R6 -^
+  0728 C285  		CLR P0.5	; clear ICP port pin
+  072A D284  		SETB P0.4	; set P
+  072C 5384EF		ANL 84h, #0EFh	;reset P0.4 to quasi-bi
+  072F 22    		RET		;end ICP2 sub end [0700] file-
+
+
+L0169:		[Send ICP commands	;Begin hex block-
+  0730 E4    		CLR A		;sending contents of registers
+  0731 FC    		MOV R4, A	;thru the ICP port
+  0732 7F08  		MOV R7, #8h
+  0734 1206CB		LCALL 	L0139	;call ICP sub send '8'
+  0737 AF24  		MOV R7, 24h
+  0739 1206CB		LCALL 	L0139	;call ICP sub send 24h
+  073C 7F0A  		MOV R7, #0Ah
+  073E 1206CB		LCALL	L0139	;call ICP sub send'10' CR
+  0741 AF27  		MOV R7, 27h
+  0743 1206C6		LCALL 	L0138	;send 27h and load R7='14'
+  0746 E4    		CLR A
+  0747 FF    		MOV R7, A
+  0748 1206CB		LCALL L0139	;call ICP sub
+  074B 7F0C  		MOV R7, #0Ch
+  074D 1206CB		LCALL L0139	;call ICP sub
+  0750 AF22  		MOV R7, 22h
+  0752 1206C6		LCALL 	L0138
+  0755 7F48  		MOV R7, #48h	;send command for 
+  0757 1206CB		LCALL L0139	;call ICP sub
+L0141:
+  075A 1206FB		LCALL 	L0140
+  075D AC07  		MOV R4, 7h
+  075F EC    		MOV A, R4
+  0760 20E7F7		JB ACC.7, L0141
+  0763 22    		RET		;end [0730] block hex file-
+
+
+L0195:					;Begin hex block-
+  0764 E4    		CLR A
+  0765 FC    		MOV R4, A
+  0766 FB    		MOV R3, A
+  0767 7F0A  		MOV R7, #0Ah
+  0769 1206CB		LCALL 	L0139	;call ICP sub
+  076C 7829  		MOV R0, #29h
+  076E 1206C4		LCALL 	L0196
+  0771 7F19  		MOV R7, #19h
+  0773 1206CB		LCALL 	L0139	;call ICP sub
+L0197:
+  0776 1206FB		LCALL 	L0140
+  0779 AC07  		MOV R4, 7h
+  077B EC    		MOV A, R4
+  077C 20E7F7		JB ACC.7, L0197
+  077F E4    		CLR A
+  0780 FB    		MOV R3, A
+L0198:					;loop 4 times on R3 -V
+  0781 7F05  		MOV R7, #5h
+  0783 1206CB		LCALL 	L0139	;call ICP sub
+  0786 120700		LCALL 	L0185
+  0789 7429  		MOV A, #29h	;storing 4 byte in registers
+  078B 2B    		ADD A, R3	;29,2A,2B,2C
+  078C F8    		MOV R0, A
+  078D A607  		MOV @R0, 7h	;7h has the data
+  078F 0B    		INC R3
+  0790 BB04EE		CJNE R3, #4h, L0198 ; loop 4 times on R3 -^
+  0793 22    		RET		;end [0764] block hex file-
+
+
+L0200:					;      begin hex block-
+  0794 E4    		CLR A
+  0795 FC    		MOV R4, A
+  0796 FB    		MOV R3, A
+  0797 7F0E  		MOV R7, #0Eh	;'14'
+  0799 1206CB		LCALL 	L0139	;call ICP sub
+  079C 7F1A  		MOV R7, #1Ah
+  079E 1206CB		LCALL 	L0139	;call ICP sub
+L0201:
+  07A1 1206FB		LCALL 	L0140
+  07A4 AC07  		MOV R4, 7h
+  07A6 EC    		MOV A, R4
+  07A7 20E7F7		JB ACC.7, L0201
+  07AA E4    		CLR A
+  07AB FB    		MOV R3, A
+L0202:
+  07AC 7F05  		MOV R7, #5h	;'5'
+  07AE 1206CB		LCALL 	L0139	;call ICP sub
+  07B1 120700		LCALL 	L0185
+  07B4 7429  		MOV A, #29h	;'41' =")"
+  07B6 2B    		ADD A, R3
+  07B7 F8    		MOV R0, A
+  07B8 A607  		MOV @R0, 7h
+  07BA 0B    		INC R3
+  07BB BB04EE		CJNE R3,#4h,L0202 ;'4'
+  07BE 22    		RET		;end [0794] block hex file-
+
+
+L0167:					;Begin subroutine
+  07BF E4    		CLR A		;      begin hex block-
+  07C0 FB    		MOV R3, A
+L0171:
+  07C1 EB    		MOV A, R3
+  07C2 FD    		MOV R5, A
+  07C3 33    		RLC A
+  07C4 95E0  		SUBB A, ACC
+  07C6 FC    		MOV R4, A
+  07C7 C3    		CLR C
+  07C8 ED    		MOV A, R5
+  07C9 9523  		SUBB A, 23h
+  07CB 7480  		MOV A, #80h	;'128'
+  07CD F8    		MOV R0, A
+  07CE 6C    		XRL A, R4
+  07CF 98    		SUBB A, R0
+  07D0 5015  		JNC L0168	;exit condition met
+  07D2 7429  		MOV A, #29h	;'41' =")"
+  07D4 2B    		ADD A, R3
+  07D5 F8    		MOV R0, A
+  07D6 E6    		MOV A, @R0
+  07D7 F522  		MOV 22h, A
+  07D9 120730		LCALL 	L0169
+  07DC 0524  		INC 24h
+  07DE E524  		MOV A, 24h
+  07E0 7002  		JNZ 	L0170
+  07E2 0527  		INC 27h
+L0170:
+  07E4 0B    		INC R3
+  07E5 80DA  		SJMP 	L0171
+L0168:
+  07E7 22    		RET		;end [07BF] block hex file-
+
+L0043:					;Second Serial Port subroutine
+  07E8 EF    		MOV A, R7	;      begin hex block-
+  07E9 B40A07		CJNE A, #0Ah, L0044	;jump if R7<>'10'
+  07EC 740D  		MOV A, #0Dh	;'13' CR
+  07EE 1207F3		LCALL 	L0044
+  07F1 740A  		MOV A, #0Ah	;'10' LF
+L0044:
+  07F3 309811		JNB RI, L0045	;read interrupt?
+  07F6 A899  		MOV R0, SBUF		;Read Serial Buffer
+  07F8 B8130C		CJNE R0, #13h, L0045	;'19'
+  07FB C298  		CLR RI
+L0046:
+  07FD 3098FD		JNB RI, L0046	;wait here until RI =1
+  0800 A899  		MOV R0, SBUF	;then read serial to R0
+  0802 C298  		CLR RI		;and clear the RI bit
+  0804 B811F6		CJNE R0,#11h,L0046 ;then wait for more data
+L0045:					   ;until you get a #11h
+  0807 3099FD		JNB TI, L0045	;wait here until TI =1
+  080A C299  		CLR TI		;then clear TI
+  080C F599  		MOV SBUF, A	;send out data on serial
+  080E 22    		RET		;end Serial Port [07E8]
+
+
+L0204:					
+  080F E4    		CLR A		;Begin hex block-
+  0810 FC    		MOV R4, A
+  0811 7F0E  		MOV R7, #0Eh	;'14'
+  0813 1206CB		LCALL 	L0139	;call ICP sub
+  0816 7F72  		MOV R7, #72h	;'114' ="r"
+  0818 1206CB		LCALL 	L0139	;call ICP sub
+  081B E4    		CLR A
+  081C FB    		MOV R3, A
+L0205:
+  081D 7F05  		MOV R7, #5h	;'5'
+  081F 1206CB		LCALL 	L0139	;call ICP sub
+  0822 120700		LCALL 	L0185
+L0211:
+  0825 8F09  		MOV 9h, R7
+L0207:
+  0827 0B    		INC R3
+  0828 BB32F2		CJNE R3, #32h, L0205 ;'50' ="2"
+L0206:
+  082B 1206FB		LCALL 	L0140
+  082E AC07  		MOV R4, 7h
+  0830 EC    		MOV A, R4
+  0831 20E7F7		JB ACC.7, L0206
+  0834 22    		RET		;end [080F] block hex file-
+
+
+L0183:					;Begin hex block-
+  0835 7F0E  		MOV R7, #0Eh	;'14'
+  0837 1206CB		LCALL 	L0139	;call ICP sub
+  083A 7F6C  		MOV R7, #6Ch	;'108' ="l"
+  083C 1206CB		LCALL 	L0139	;call ICP sub
+  083F 7F08  		MOV R7, #8h	;'8'
+  0841 1206CB		LCALL 	L0139	;call ICP sub
+  0844 7829  		MOV R0, #29h	;'41' =")"
+  0846 E6    		MOV A, @R0
+  0847 FF    		MOV R7, A
+  0848 1206CB		LCALL 	L0139	;call ICP sub
+  084B 7F0D  		MOV R7, #0Dh	;'12'
+  084D 1206CB		LCALL 	L0139	;call ICP sub
+  0850 120700		LCALL 	L0185
+  0853 7829  		MOV R0, #29h	:'41' =")"
+  0855 A607  		MOV @R0, 7h
+  0857 22    		RET		;end [0835] block hex file-
+
+L0016:	;called	during startup		;[Load SFRs] subroutine 
+  0858 7584FF		MOV 84h, #0FFh	;Port 0 Mode 1 reset value
+  085B E4    		CLR A
+  085C F585  		MOV 85h, A	;Port 0 Mode 2 reset
+  085E 7591BE		MOV 91h, #0BEh	;P1 Mode 1 1011 1110
+  0861 F592  		MOV 92h, A	;P1 M2 reset 00x0 xx00
+  0863 75A4F7		MOV A4h, #0F7h	;P2 M1 1111 1110
+  0866 F5A5  		MOV A5h, A	;P2 M2 reset 
+  0868 D2A3  		SETB P2.3	;set bit
+  086A C296  		CLR P1.6	;clear bit
+  086C 759852		MOV SCON, #52h	;Serial Port Control 0101 0010
+  086F 75BE70		MOV BEh, #70h	;Baud Rate Low ...R0 0111 0000
+  0872 75BF01		MOV BFh, #1h	;BRGR1               0000 0001
+  0875 75BD03		MOV BDh, #3h	;BRGenerator Control 0000 0101
+  0878 22    		RET		;return [035F]
+
+
+L0021:					;Begin hex block-
+  0879 1208D4		LCALL 	L0019
+  087C 12091A		LCALL 	L0024	;
+  087F EF    		MOV A, R7
+  0880 C4    		SWAP A
+  0881 54F0  		ANL A, #0F0h
+  0883 F509  		MOV 9h, A
+  0885 1208D4		LCALL 	L0019
+  0888 12091A		LCALL 	L0024	;
+  088B EF    		MOV A, R7
+  088C 2509  		ADD A, 9h
+  088E F509  		MOV 9h, A
+  0890 C3    		CLR C
+  0891 E526  		MOV A, 26h
+  0893 9509  		SUBB A, 9h
+  0895 F526  		MOV 26h, A
+  0897 AF09  		MOV R7, 9h
+  0899 22    		RET		;end [0879] block hex file-
+
+
+L0188:	called from 0420		;Begin [Erase Page}
+  089A E4    		CLR A		;      begin hex block-
+  089B FC    		MOV R4, A
+  089C 7F08  		MOV R7, #8h	;'8'
+  089E 1206CB		LCALL 	L0139	;call ICP sub
+  08A1 782B  		MOV R0, #2Bh	;'43' ="+"
+  08A3 E6    		MOV A, @R0
+  08A4 FF    		MOV R7, A
+  08A5 1206CB		LCALL 	L0139	;call ICP sub
+  08A8 1206BD		LCALL 	L0189	;call preload and ICP sub 
+  08AB 7F70  		MOV R7, #70h	;'112' ="p"
+  08AD 1206CB		LCALL 	L0139	;call ICP sub
+L0190:
+  08B0 1206FB		LCALL 	L0140
+  08B3 AC07  		MOV R4, 7h
+  08B5 EC    		MOV A, R4
+  08B6 20E7F7		JB ACC.7, L0190	;loop on bit
+  08B9 22    		RET		;end [089A] block hex file-
+
+
+L0017:		;Wait timer[0366]	;[Delay timer R7=244,R6=1]
+  08BA EF    		MOV A, R7	;Countdown loop begin hex block-
+  08BB 4E    		ORL A, R6	;on R7,R6
+  08BC 6015  		JZ L0082	;finished when all empty
+  08BE E4    		CLR A
+  08BF FC    		MOV R4, A	;fast inner loop
+  08C0 FD    		MOV R5, A	;clear R4,5
+L0084:					;fast loop on R5
+  08C1 0D    		INC R5		  ;cycles 02A8h ='681' times
+  08C2 BD0001		CJNE R5,#0h,L0083 ; for one cycle on R7
+  08C5 0C    		INC R4		  ;inner loop counter on R4
+L0083:					  ;CJNE branch on R5
+  08C6 BC02F8		CJNE R4,#2h,L0084 ;R4='2'
+  08C9 BDA8F5		CJNE R5,#A8h,L0084;R5 ='168'  
+  08CC EF    		MOV A, R7
+  08CD 1F    		DEC R7
+  08CE 70EA  		JNZ  L0017	;middle loop counts down R7
+  08D0 1E    		DEC R6		;Total machine cycles
+  08D1 80E7  		SJMP L0017	; ~1,332,007. @ .271 usec
+L0082:
+  08D3 22    		RET		;end [08BA] block hex file-
+
+
+L0019:		;First Serial Port Subroutine called at startup
+  08D4 3098FD		JNB RI, L0019	;wait till you get Rx INT
+  08D7 C298  		CLR RI
+  08D9 AF99  		MOV R7, SBUF	;Receive the data byte
+L0026:
+  08DB 3099FD		JNB TI, L0026	;wait till Tx INT
+  08DE C299  		CLR TI
+  08E0 8F99  		MOV SBUF, R7	;Transmit the data
+  08E2 EF    		MOV A, R7
+  08E3 30E603		JNB ACC.6, L0027
+  08E6 5307DF		ANL 7h, #0DFh
+L0027:
+  08E9 22    		RET		;end [08D4] block hex file-
+
+
+L0192:					;Begin 
+  08EA E4    		CLR A		;       begin hex block-
+  08EB FC    		MOV R4, A
+  08EC 1206BD		LCALL 	L0189	;call preload to ICP sub
+  08EF 7F71  		MOV R7, #71h	;'113' ="q"
+  08F1 1206CB		LCALL 	L0139	;call ICP sub
+L0193:
+  08F4 1206FB		LCALL 	L0140	;
+  08F7 AC07  		MOV R4, 7h
+  08F9 EC    		MOV A, R4
+  08FA 20E7F7		JB ACC.7, L0193	;loop
+  08FD 22    		RET		;end [08EA] block hex file-
+
+
+;Data pointer set here at startup from [057A] =>data bytes ?
+  08FE 0124  		AJMP L0208	;DATA POINTER SET 
+  0900 00    		NOP		:*** Re-run without this EP
+  0901 0127  		AJMP L0207
+  0903 00    		NOP
+  0904 0126  		AJMP L0209
+  0906 00    		NOP
+  0907 0123  		AJMP L0210
+  0909 00    		NOP
+  090A 0125  		AJMP L0211
+  090C 00    		NOP
+  090D 00    		NOP
+  090E 58    		ANL A, R0
+  090F 0A    		INC R2
+  0910 00    		NOP
+  0911 2E    		ADD A, R6
+  0912 0A    		INC R2
+  0913 00    		NOP
+  0914 520A  		ANL 0Ah, A
+  0916 00    		NOP
+  0917 2563  		ADD A, 63h
+  0919 00    		NOP
+
+;data bytes structure appears to be 2 bytes followed by 00
+  08FE 01    		DB 001h 		;begin '15' bytes-
+  08FF 24    		DB 024h ; '$'
+  0900 00    		000h 
+  0901 01    		DB 001h 
+  0902 27    		DB 027h ; '''
+  0903 00    		000h 
+  0904 01    		DB 001h 
+  0905 26    		DB 026h ; '&'
+  0906 00    		000h 
+  0907 01    		DB 001h 
+  0908 23    		DB 023h ; '#'
+  0909 00    		000h 
+  090A 01    		DB 001h 
+  090B 25    		DB 025h ; '%'
+  090C 00    		000h 			;end 0F '15' bytes-
+
+  090D 00    		000h 		;added single line hex file-
+
+;from looking at the bridge hex code file
+  090E 58    		DB 058h ; 'X'		;begin '12' bytes-
+  090F 0A    		DB 00Ah ; '10' LF
+  0910 00    		000h 
+  0911 2E    		DB 02Eh ; '.'
+  0912 0A    		DB 00Ah 
+  0913 00    		000h 
+  0914 52    		DB 052h ; 'R'
+  0915 0A    		DB 00Ah 
+  0916 00    		000h 
+  0917 25    		DB 025h ; '%'
+  0918 63    		DB 063h ; 'c'
+  0919 00    		000h 		;end 0C '12' bytes-
+;end of data bytes
+
+L0024:					;Begin hex block-
+  091A EF    		MOV A, R7
+  091B 30E603		JNB ACC.6, L0025
+  091E 2409  		ADD A, #9h
+  0920 FF    		MOV R7, A
+L0025:
+  0921 53070F		ANL 7h, #0Fh
+  0924 22    		RET		;end [091A] block hex file-
+END of Code
